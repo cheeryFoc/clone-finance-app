@@ -1,206 +1,211 @@
 import BoxHeader from "@/components/BoxHeader";
 import DashboardBox from "@/components/DashboardBox";
 import FlexBetween from "@/components/FlexBetween";
-import { useGetKpisQuery, useGetProductsQuery } from "@/state/api";
-import { Box, Typography, useTheme } from "@mui/material";
-import React, { useMemo } from "react";
 import {
-  Tooltip,
-  CartesianGrid,
-  LineChart,
-  ResponsiveContainer,
-  XAxis,
-  YAxis,
-  Line,
-  PieChart,
-  Pie,
-  Cell,
-  ScatterChart,
-  Scatter,
-  ZAxis,
-} from "recharts";
+  useGetKpisQuery,
+  useGetProductsQuery,
+  useGetTransactionsQuery,
+} from "@/state/api";
+import { Box, Typography, useTheme } from "@mui/material";
+import { DataGrid, GridCellParams } from "@mui/x-data-grid";
+import React, { useMemo } from "react";
+import { Cell, Pie, PieChart } from "recharts";
 
-const pieData = [
-  { name: "Group A", value: 600 },
-  { name: "Group B", value: 400 },
-];
-
-const Row2 = () => {
+const Row3 = () => {
   const { palette } = useTheme();
-  const pieColors = [palette.primary[800], palette.primary[300]];
-  const { data: operationalData } = useGetKpisQuery();
+  const pieColors = [palette.primary[800], palette.primary[500]];
+
+  const { data: kpiData } = useGetKpisQuery();
   const { data: productData } = useGetProductsQuery();
+  const { data: transactionData } = useGetTransactionsQuery();
 
-  const operationalExpenses = useMemo(() => {
-    return (
-      operationalData &&
-      operationalData[0].monthlyData.map(
-        ({ month, operationalExpenses, nonOperationalExpenses }) => {
-          return {
-            name: month.substring(0, 3),
-            "Operational Expenses": operationalExpenses,
-            "Non Operational Expenses": nonOperationalExpenses,
-          };
+  const pieChartData = useMemo(() => {
+    if (kpiData) {
+      const totalExpenses = kpiData[0].totalExpenses;
+      return Object.entries(kpiData[0].expensesByCategory).map(
+        ([key, value]) => {
+          return [
+            {
+              name: key,
+              value: value,
+            },
+            {
+              name: `${key} of Total`,
+              value: totalExpenses - value,
+            },
+          ];
         }
-      )
-    );
-  }, [operationalData]);
+      );
+    }
+  }, [kpiData]);
 
-  const productExpenseData = useMemo(() => {
-    return (
-      productData &&
-      productData.map(({ _id, price, expense }) => {
-        return {
-          id: _id,
-          price: price,
-          expense: expense,
-        };
-      })
-    );
-  }, [productData]);
+  const productColumns = [
+    {
+      field: "_id",
+      headerName: "id",
+      flex: 1,
+    },
+    {
+      field: "expense",
+      headerName: "Expense",
+      flex: 0.5,
+      renderCell: (params: GridCellParams) => `$${params.value}`,
+    },
+    {
+      field: "price",
+      headerName: "Price",
+      flex: 0.5,
+      renderCell: (params: GridCellParams) => `$${params.value}`,
+    },
+  ];
+
+  const transactionColumns = [
+    {
+      field: "_id",
+      headerName: "id",
+      flex: 1,
+    },
+    {
+      field: "buyer",
+      headerName: "Buyer",
+      flex: 0.67,
+    },
+    {
+      field: "amount",
+      headerName: "Amount",
+      flex: 0.35,
+      renderCell: (params: GridCellParams) => `$${params.value}`,
+    },
+    {
+      field: "productIds",
+      headerName: "Count",
+      flex: 0.1,
+      renderCell: (params: GridCellParams) =>
+        (params.value as Array<string>).length,
+    },
+  ];
 
   return (
     <>
-      <DashboardBox gridArea="d">
+      <DashboardBox gridArea="g">
         <BoxHeader
-          title="Operational vs Non-Operational Expenses"
-          sideText="+4%"
+          title="List of Products"
+          sideText={`${productData?.length} products`}
         />
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart
-            data={operationalExpenses}
-            margin={{
-              top: 20,
-              right: 0,
-              left: -10,
-              bottom: 55,
-            }}
-          >
-            <CartesianGrid vertical={false} stroke={palette.grey[800]} />
-            <XAxis
-              dataKey="name"
-              tickLine={false}
-              style={{ fontSize: "10px" }}
-            />
-            <YAxis
-              yAxisId="left"
-              orientation="left"
-              tickLine={false}
-              axisLine={false}
-              style={{ fontSize: "10px" }}
-            />
-            <YAxis
-              yAxisId="right"
-              orientation="right"
-              tickLine={false}
-              axisLine={false}
-              style={{ fontSize: "10px" }}
-            />
-            <Tooltip />
-            <Line
-              yAxisId="left"
-              type="monotone"
-              dataKey="Non Operational Expenses"
-              stroke={palette.tertiary[500]}
-            />
-            <Line
-              yAxisId="right"
-              type="monotone"
-              dataKey="Operational Expenses"
-              stroke={palette.primary.main}
-            />
-          </LineChart>
-        </ResponsiveContainer>
+        <Box
+          mt="0.5rem"
+          p="0 0.5rem"
+          height="75%"
+          sx={{
+            "& .MuiDataGrid-root": {
+              color: palette.grey[300],
+              border: "none",
+            },
+            "& .MuiDataGrid-cell": {
+              borderBottom: `1px solid ${palette.grey[800]} !important`,
+            },
+            "& .MuiDataGrid-columnHeaders": {
+              borderBottom: `1px solid ${palette.grey[800]} !important`,
+            },
+            "& .MuiDataGrid-columnSeparator": {
+              visibility: "hidden",
+            },
+          }}
+        >
+          <DataGrid
+            columnHeaderHeight={25}
+            rowHeight={35}
+            hideFooter={true}
+            rows={productData || []}
+            columns={productColumns}
+          />
+        </Box>
       </DashboardBox>
-      <DashboardBox gridArea="e">
-        <BoxHeader title="Campaigns and Targets" sideText="+4%" />
-        <FlexBetween mt="0.25rem" gap="1.5rem" pr="1rem">
-          <PieChart
-            width={110}
-            height={100}
-            margin={{
-              top: 0,
-              right: -10,
-              left: 10,
-              bottom: 0,
-            }}
-          >
-            <Pie
-              stroke="none"
-              data={pieData}
-              innerRadius={18}
-              outerRadius={38}
-              paddingAngle={2}
-              dataKey="value"
-            >
-              {pieData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={pieColors[index]} />
-              ))}
-            </Pie>
-          </PieChart>
-          <Box ml="-0.7rem" flexBasis="40%" textAlign="center">
-            <Typography variant="h5">Target Sales</Typography>
-            <Typography m="0.3rem 0" variant="h3" color={palette.primary[300]}>
-              83
-            </Typography>
-            <Typography variant="h6">
-              Finance goals of the campaign that is desired
-            </Typography>
-          </Box>
-          <Box flexBasis="40%">
-            <Typography variant="h5">Losses in Revenue</Typography>
-            <Typography variant="h6">Losses are down 25%</Typography>
-            <Typography mt="0.4rem" variant="h5">
-              Profit Margins
-            </Typography>
-            <Typography variant="h6">
-              Margins are up by 30% from last month.
-            </Typography>
-          </Box>
+      <DashboardBox gridArea="h">
+        <BoxHeader
+          title="Recent Orders"
+          sideText={`${transactionData?.length} latest transactions`}
+        />
+        <Box
+          mt="1rem"
+          p="0 0.5rem"
+          height="80%"
+          sx={{
+            "& .MuiDataGrid-root": {
+              color: palette.grey[300],
+              border: "none",
+            },
+            "& .MuiDataGrid-cell": {
+              borderBottom: `1px solid ${palette.grey[800]} !important`,
+            },
+            "& .MuiDataGrid-columnHeaders": {
+              borderBottom: `1px solid ${palette.grey[800]} !important`,
+            },
+            "& .MuiDataGrid-columnSeparator": {
+              visibility: "hidden",
+            },
+          }}
+        >
+          <DataGrid
+            columnHeaderHeight={25}
+            rowHeight={35}
+            hideFooter={true}
+            rows={transactionData || []}
+            columns={transactionColumns}
+          />
+        </Box>
+      </DashboardBox>
+      <DashboardBox gridArea="i">
+        <BoxHeader title="Expense Breakdown By Category" sideText="+4%" />
+        <FlexBetween mt="0.5rem" gap="0.5rem" p="0 1rem" textAlign="center">
+          {pieChartData?.map((data, i) => (
+            <Box key={`${data[0].name}-${i}`}>
+              <PieChart width={110} height={100}>
+                <Pie
+                  stroke="none"
+                  data={data}
+                  innerRadius={18}
+                  outerRadius={35}
+                  paddingAngle={2}
+                  dataKey="value"
+                >
+                  {data.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={pieColors[index]} />
+                  ))}
+                </Pie>
+              </PieChart>
+              <Typography variant="h5">{data[0].name}</Typography>
+            </Box>
+          ))}
         </FlexBetween>
       </DashboardBox>
-      <DashboardBox gridArea="f">
-        <BoxHeader title="Product Prices vs Expenses" sideText="+4%" />
-        <ResponsiveContainer width="100%" height="100%">
-          <ScatterChart
-            margin={{
-              top: 20,
-              right: 25,
-              bottom: 40,
-              left: -10,
-            }}
-          >
-            <CartesianGrid stroke={palette.grey[800]} />
-            <XAxis
-              type="number"
-              dataKey="price"
-              name="price"
-              axisLine={false}
-              tickLine={false}
-              style={{ fontSize: "10px" }}
-              tickFormatter={(v) => `$${v}`}
-            />
-            <YAxis
-              type="number"
-              dataKey="expense"
-              name="expense"
-              axisLine={false}
-              tickLine={false}
-              style={{ fontSize: "10px" }}
-              tickFormatter={(v) => `$${v}`}
-            />
-            <ZAxis type="number" range={[20]} />
-            <Tooltip formatter={(v) => `$${v}`} />
-            <Scatter
-              name="Product Expense Ratio"
-              data={productExpenseData}
-              fill={palette.tertiary[500]}
-            />
-          </ScatterChart>
-        </ResponsiveContainer>
+      <DashboardBox gridArea="j">
+        <BoxHeader
+          title="Overall Summary and Explanation Data"
+          sideText="+15%"
+        />
+        <Box
+          height="15px"
+          margin="1.25rem 1rem 0.4rem 1rem"
+          bgcolor={palette.primary[800]}
+          borderRadius="1rem"
+        >
+          <Box
+            height="15px"
+            bgcolor={palette.primary[600]}
+            borderRadius="1rem"
+            width="40%"
+          ></Box>
+        </Box>
+        <Typography margin="0 1rem" variant="h6">
+          Orci aliquam enim vel diam. Venenatis euismod id donec mus lorem etiam
+          ullamcorper odio sed. Ipsum non sed gravida etiam urna egestas
+          molestie volutpat et. Malesuada quis pretium aliquet lacinia ornare
+          sed. In volutpat nullam at est id cum pulvinar nunc.
+        </Typography>
       </DashboardBox>
     </>
   );
 };
 
-export default Row2;
+export default Row3;
