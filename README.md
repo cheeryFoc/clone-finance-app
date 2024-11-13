@@ -11,6 +11,4 @@ i like this beautiful landing page for this consist of a lot of kpis and informa
 展示KPI，追踪数据
 <br/>
 
-Learning Sources ：ed-roh -> https://github.com/ed-roh/finance-app
-
 ![展示](./imgs/Snipaste_2024-09-20_17-09-16.png)
